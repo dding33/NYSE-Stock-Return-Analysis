@@ -1,0 +1,119 @@
+---
+title: "Time Series Case Analysis"
+author: "Yiqu Ding"
+date: "12/3/2021"
+output: 
+  pdf_document:
+    fig_width: 6.1
+    fig_height: 3.2
+    fig_crop: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE,message = FALSE)
+packages =  c("astsa","ggplot2", "dplyr", "tidyr", "data.table", 'corrplot', 'gridExtra', 'forecast', 'tseries', 'TSA', 'tibble', 'TTR', 'xts', 'dygraphs', 'assertthat','knitr','readr')
+
+my.install <- function(pkg, ...){
+  if (!(pkg %in% installed.packages()[,1])) {
+    install.packages(pkg)
+  }
+  return (library(pkg, ...))
+}
+
+purrr::walk(packages, my.install, character.only = TRUE, warn.conflicts = FALSE)
+```
+
+## Abstract
+
+## Introduction
+
+```{r}
+s_data = read_csv("AABA_2006-01-01_to_2018-01-01.csv")
+```
+
+```{r}
+kable(summary(s_data))
+```
+
+### Data
+
+```{r}
+s_data[is.na(s_data)] <- 0#remove NAs
+s_data$Date <- as.Date(s_data$Date, format = "%Y-%m-%d")#adjust the format of date variable to R dates
+```
+
+```{r}
+#EDA
+p1 = ggplot(s_data, aes(Open)) + geom_histogram(bins = 50, aes(y = ..density..), col = "red", fill = "red", alpha = 0.3) + geom_density() + ggtitle("Univariate Distribution of Opening Prices") + theme_minimal()
+
+p2 = ggplot(s_data, aes(High)) + geom_histogram(bins = 50, aes(y = ..density..), col = "green", fill = "green", alpha = 0.3) + geom_density()+ ggtitle("Univariate Distribution of Highest Prices")+ theme_minimal()
+
+p3 = ggplot(s_data, aes(Low)) + geom_histogram(bins = 50, aes(y = ..density..), col = "yellow", fill = "yellow", alpha = 0.3) + geom_density()+ ggtitle("Univariate Distribution of Lowest Prices")+ theme_minimal()
+
+p4 = ggplot(s_data, aes(Close)) + geom_histogram(bins = 50, aes(y = ..density..), col = "blue", fill = "blue", alpha = 0.3) + geom_density()+ ggtitle("Univariate Distribution of Closing Prices")+ theme_minimal()
+
+grid.arrange(p1,p2, nrow=2,ncol=1)
+grid.arrange(p3,p4, nrow=2,ncol=1)
+```
+
+## Method
+
+```{r, include=FALSE}
+#Stationary Test
+s_acf <- acf2(s_data$Close)
+adf.test(s_data$Close)#BOth indicates this might not be stationary, so we proceed with differentiating
+```
+
+```{r}
+stock <- as.ts(s_data$Close)
+plot(diff(stock))
+diff1 <- acf2(diff(stock))
+```
+
+```{r}
+tsarima200 <- auto.arima(head(stock, -200), max.p = 3, max.q = 3, max.d = 3) # excluding last 240 time series as test data
+autoplot(tsarima200)
+
+tsarima100 <- auto.arima(head(stock, -100), max.p = 3, max.q = 3, max.d = 3) # excluding last 240 time series as test data
+autoplot(tsarima100)
+
+
+tsarima25 <- auto.arima(head(stock, -25), max.p = 3, max.q = 3, max.d = 3) # excluding last 240 time series as test data
+
+tsarima5 <- auto.arima(head(stock, -5), max.p = 3, max.q = 3, max.d = 3) # excluding last 240 time series as test data
+```
+
+## Results
+
+```{r}
+tsforecasts200 <- forecast(tsarima200, h = 200) # forecast the next 200 time series
+tsforecasts100 <- forecast(tsarima100, h = 100) # forecast the next 100 time series
+tsforecasts25 <- forecast(tsarima25, h = 25) # forecast the next 25 time series
+tsforecasts5 <- forecast(tsarima5, h = 5) # forecast the next 5 time series
+
+autoplot(tsforecasts200)
+autoplot(tsforecasts100)
+autoplot(tsforecasts25)
+autoplot(tsforecasts5)
+```
+
+
+## Discussion
+
+```{r}
+ggplot(data.frame(residuals = tsforecasts200$residuals), aes(residuals)) + geom_histogram(bins = 50, aes(y = ..density..), col = "red", fill = "red", alpha = 0.3) + geom_density()# make a histogram
+
+ggplot(data.frame(residuals = tsforecasts100$residuals), aes(residuals)) + geom_histogram(bins = 50, aes(y = ..density..), col = "red", fill = "red", alpha = 0.3) + geom_density()# make a histogram
+
+ggplot(data.frame(residuals = tsforecasts25$residuals), aes(residuals)) + geom_histogram(bins = 50, aes(y = ..density..), col = "red", fill = "red", alpha = 0.3) + geom_density()# make a histogram
+
+ggplot(data.frame(residuals = tsforecasts5$residuals), aes(residuals)) + geom_histogram(bins = 50, aes(y = ..density..), col = "red", fill = "red", alpha = 0.3) + geom_density()# make a histogram
+```
+
+```{r,include=FALSE}
+checkresiduals(tsforecasts200)
+checkresiduals(tsforecasts100)
+checkresiduals(tsforecasts25)
+checkresiduals(tsforecasts5)
+```
+
