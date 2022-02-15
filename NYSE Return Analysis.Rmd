@@ -7,6 +7,10 @@ output:
     fig_width: 6.1
     fig_height: 3.2
     fig_crop: false
+abstract: |
+  This report analyzes data of earnings of Altaba's stock performance from 2006 to 2018. Using auto fitted auto regression moving avegrae integrated models, this report contains 4 ARIMA models which provide 4 forecasts to Altaba's future performance. 
+  
+  **Keywords**: ARIMA, Time Series, Economics, Stocks
 ---
 
 ```{r setup, include=FALSE}
@@ -23,12 +27,14 @@ my.install <- function(pkg, ...){
 purrr::walk(packages, my.install, character.only = TRUE, warn.conflicts = FALSE)
 ```
 
-## Abstract
-
 ## Introduction
+
+Nowadays, the stock market is an essential measure of a country’s economic status; therefore, analyzing stock returns is critical to understanding the economic trends. Stock price data is a typical type of time series because they are prices of a particular stock across a period. In this report, we fit four autoregression integrated moving average models on the closing price of stock AABA and generated four forecasts based on four autoregression. 
 
 ```{r}
 s_data = read_csv("AABA_2006-01-01_to_2018-01-01.csv")
+s_data <- s_data %>% 
+  select(Date, Open, Close, High, Low)
 ```
 
 ```{r}
@@ -36,6 +42,18 @@ kable(summary(s_data))
 ```
 
 ### Data
+
+In this report, we use publically available data obtained from Kaggle.com to demonstrate the analysis of stock prices of Altaba. Inc, an investment company, based in New York City. The stock prices are recorded every day from 2008 to 2016 at the time point of market opening, market closing, and on every day’s highest and lowest. There are 3019 observations with 7 variables:
+
+- Date: an R date variable containing the date;
+- Open: the opening price of a particular date;
+- Close: the closing price of a particular date;
+- Highest: the highest recorded stock price during the trading window of each day;
+- Lowest: the lowest recorded stock price during the trading window of each day;
+- Volume: the number of stocks;
+- Name: a ticker for the stock;
+
+Below are some exploratory data analyses:
 
 ```{r}
 s_data[is.na(s_data)] <- 0#remove NAs
@@ -56,6 +74,8 @@ grid.arrange(p1,p2, nrow=2,ncol=1)
 grid.arrange(p3,p4, nrow=2,ncol=1)
 ```
 
+Observe that the four series: Open, Close, High and Low, share similar univariate distributions, with a dominant peak around 15 dollars and a secondary peak between 25 to 30 dollars. Generally, the distribution is right-skewed. We show the time series analysis using closing prices, but the method should apply to all prices. 
+
 ## Method
 
 ```{r, include=FALSE}
@@ -72,11 +92,8 @@ diff1 <- acf2(diff(stock))
 
 ```{r}
 tsarima200 <- auto.arima(head(stock, -200), max.p = 3, max.q = 3, max.d = 3) # excluding last 240 time series as test data
-autoplot(tsarima200)
 
 tsarima100 <- auto.arima(head(stock, -100), max.p = 3, max.q = 3, max.d = 3) # excluding last 240 time series as test data
-autoplot(tsarima100)
-
 
 tsarima25 <- auto.arima(head(stock, -25), max.p = 3, max.q = 3, max.d = 3) # excluding last 240 time series as test data
 
@@ -115,5 +132,9 @@ checkresiduals(tsforecasts200)
 checkresiduals(tsforecasts100)
 checkresiduals(tsforecasts25)
 checkresiduals(tsforecasts5)
+```
+
+```{r}
+sarima(diff(stock),0,1,0)
 ```
 
